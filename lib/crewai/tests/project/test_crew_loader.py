@@ -9,7 +9,7 @@ import pytest
 
 from crewai.llms.base_llm import BaseLLM
 from crewai.project.json_loader import JSONProjectError, JSONProjectValidationError
-from crewai.project.crew_loader import load_crew
+from crewai.project.crew_loader import load_crew, load_crew_from_definition
 
 
 def _write_python_defs(tmp_path: Path) -> None:
@@ -70,6 +70,34 @@ def _input_file_path(value) -> Path:
 
 
 class TestLoadCrew:
+    def test_load_crew_from_inline_definition(self):
+        crew, inputs = load_crew_from_definition(
+            {
+                "name": "inline_crew",
+                "agents": {
+                    "researcher": {
+                        "role": "Researcher",
+                        "goal": "Research {topic}",
+                        "backstory": "Knows things.",
+                    }
+                },
+                "tasks": [
+                    {
+                        "name": "research",
+                        "description": "Research {topic}",
+                        "expected_output": "Findings about {topic}",
+                        "agent": "researcher",
+                    }
+                ],
+                "inputs": {"topic": "AI"},
+            }
+        )
+
+        assert crew.name == "inline_crew"
+        assert crew.agents[0].role == "Researcher"
+        assert crew.tasks[0].description == "Research {topic}"
+        assert inputs == {"topic": "AI"}
+
     def test_minimal_crew(self, tmp_path: Path):
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
